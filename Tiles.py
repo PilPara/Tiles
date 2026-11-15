@@ -1,120 +1,114 @@
 from collections import deque
-from typing import List
+from typing import Deque, List
+import sys
 
-goal_state = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-
-
-def pretty_print(state: List[int]):
-    print("+---+---+---+")
-    for i in range(0, 9, 3):
-        print("| {} | {} | {} |".format(*state[i : i + 3]))
-        print("+---+---+---+")
+target_state = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def print_state(state: List[int]) -> None:
-    for i in state:
-        print(i, end=" ")
-    print()
+    print("+---+---+---+")
+    for i in range(0, 9, 3):
+        row = [" " if x == 0 else x for x in state[i : i + 3]]
+        print("| {} | {} | {} |".format(*row))
+        print("+---+---+---+")
 
 
-def swap(arr: List[int], i: int, j: int):
-    l = arr.copy()
-    l[i] = arr[j]
-    l[j] = arr[i]
-    return l
+def left(state: List[int]) -> List[int]:
+    result = state.copy()
+    zero_index = state.index(0)
+    if zero_index % 3 == 0:
+        return result
+
+    if 0 <= zero_index - 1 <= 8:
+        temp = state[zero_index]
+        result[zero_index] = result[zero_index - 1]
+        result[zero_index - 1] = temp
+
+    return result
 
 
-def find_blank_index(arr: List[int]) -> int:
-    for i in range(len(arr)):
-        if arr[i] == 0:
-            return i
+def right(state: List[int]) -> List[int]:
+    result = state.copy()
+    zero_index = state.index(0)
+    if zero_index % 3 == 2:
+        return result
 
-    return -1
+    if 0 <= zero_index + 1 <= 8:
+        temp = state[zero_index]
+        result[zero_index] = result[zero_index + 1]
+        result[zero_index + 1] = temp
 
-
-def up(arr: List[int]) -> List[int]:
-    l = []
-    zero = find_blank_index(arr)
-    new_index = zero - 3
-    if 0 <= new_index <= 8:
-        l = swap(arr, zero, zero - 3)
-    return l
+    return result
 
 
-def down(arr: List[int]) -> List[int]:
-    l = []
-    zero = find_blank_index(arr)
-    new_index = zero + 3
-    if 0 <= new_index <= 8:
-        l = swap(arr, zero, zero + 3)
-    return l
+def up(state: List[int]) -> List[int]:
+    result = state.copy()
+    zero_index = state.index(0)
+    if 0 <= zero_index - 3 <= 8:
+        temp = result[zero_index]
+        result[zero_index] = result[zero_index - 3]
+        result[zero_index - 3] = temp
+
+    return result
 
 
-def right(arr: List[int]) -> List[int]:
-    l = []
-    zero = find_blank_index(arr)
-    if zero % 3 != 2:
-        new_index = zero + 1
-        if 0 <= new_index <= 8:
-            l = swap(arr, zero, zero + 1)
-    return l
+def down(state: List[int]) -> List[int]:
+    result = state.copy()
+    zero_index = state.index(0)
+    if 0 <= zero_index + 3 <= 8:
+        temp = result[zero_index]
+        result[zero_index] = result[zero_index + 3]
+        result[zero_index + 3] = temp
 
-
-def left(arr: List[int]) -> List[int]:
-    l = []
-    zero = find_blank_index(arr)
-    if zero % 3 != 0:
-        new_index = zero - 1
-        if 0 <= new_index <= 8:
-            l = swap(arr, zero, zero - 1)
-    return l
+    return result
 
 
 def is_goal(state: List[int]) -> bool:
-    return state == goal_state
+    return state == target_state
 
 
-def expand(state) -> List[int]:
+def expand(state: List[int]) -> List[List[int]]:
     children = []
     for move in (left, right, up, down):
-        child = move(state)
-        if child:
-            children.append(child)
-
+        new_state = move(state)
+        if new_state is not None:
+            children.append(new_state)
     return children
 
 
-def bfs(initial_state: List[int]) -> List[int]:
+def main():
+    if len(sys.argv) != 10:
+        print("usage: python Tiles.py <9 digits>")
+        sys.exit(1)
+
+    initial_state = [int(x) for x in sys.argv[1:]]
+
+    # NOTE: Action order - Left Right Up Down
+
+    print_state(initial_state)
     node = initial_state
-    expanded = 0
     if is_goal(node):
-        return node
+        print_state(node)
+        exit(0)
 
     frontier = deque([node])
     reached = set()
-    reached.add(tuple(node))
+    reached.add(tuple(initial_state))
+    expanded = 0
+    parents = []
 
     while frontier:
         node = frontier.popleft()
         expanded += 1
         children = expand(node)
         for child in children:
-            state = child
-            if is_goal(state):
+            if is_goal(child):
+                print_state(child)
                 print(expanded)
-                return child
-            if tuple(state) not in reached:
-                reached.add(tuple(state))
-                frontier.append(state)
-    print(expanded)
-    return []
-
-
-def main():
-    initial_state = [1, 4, 0, 5, 8, 2, 3, 6, 7]
-    state = bfs(initial_state)
-
-    pretty_print(state)
+                exit(0)
+            if tuple(child) not in reached:
+                reached.add(tuple(child))
+                frontier.append(child)
 
 
 if __name__ == "__main__":
